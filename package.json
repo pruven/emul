@@ -1,0 +1,13 @@
+{
+  "name": "tidal-downloader",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "cargo run",
+    "build": "cargo build --release --locked",
+    "test": "cargo test --locked",
+    "desktop:dev": "cargo run",
+    "desktop:build": "cargo build --release --locked",
+    "desktop:test": "cargo test --locked"
+  }
+}

@@ -1,0 +1,23 @@
+[package]
+name = "tidal-downloader"
+version = "0.1.0"
+edition = "2024"
+description = "A native media downloader built with Rune and yt-dlp"
+license = "MIT"
+
+[dependencies]
+rune = { git = "https://github.com/anomalyco/rune", rev = "dece2aff3a254ffd6f6a0a49baa82b75664b3190", default-features = false, features = ["accessibility"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "6"
+url = "2"
+
+[profile.dev]
+debug = 0
+
+[profile.release]
+strip = true
+lto = "thin"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
