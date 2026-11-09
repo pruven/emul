@@ -16,7 +16,7 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-with tempfile.TemporaryDirectory(prefix="tidal-fixture-") as fixture_dir:
+with tempfile.TemporaryDirectory(prefix="emul-fixture-") as fixture_dir:
     subprocess.run([
         "ffmpeg", "-hide_banner", "-loglevel", "error",
         "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=24",
@@ -35,8 +35,8 @@ with tempfile.TemporaryDirectory(prefix="tidal-fixture-") as fixture_dir:
                 "downloads_real_media", "--", "--ignored", "--nocapture",
             ], cwd=ROOT, env={
                 **os.environ,
-                "TIDAL_TEST_MEDIA_URL": f"http://127.0.0.1:{server.server_port}/fixture.mp4",
-                "TIDAL_TEST_SUBTITLE_URL": f"http://127.0.0.1:{server.server_port}/subtitles.html",
+                "EMUL_TEST_MEDIA_URL": f"http://127.0.0.1:{server.server_port}/fixture.mp4",
+                "EMUL_TEST_SUBTITLE_URL": f"http://127.0.0.1:{server.server_port}/subtitles.html",
             }, check=True)
         finally:
             server.shutdown()

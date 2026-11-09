@@ -1,4 +1,4 @@
-# Tidal
+# emul
 
 A native media downloader built with [Rune](https://github.com/anomalyco/rune) and [yt-dlp](https://github.com/yt-dlp/yt-dlp), inspired by ID4's focused download workflow. Rust renders the entire interface; there is no webview or local web server.
 
@@ -9,13 +9,13 @@ A native media downloader built with [Rune](https://github.com/anomalyco/rune) a
 Install Rust, yt-dlp, and FFmpeg. Make sure `yt-dlp` and `ffmpeg` are available on PATH **when launching the app**.
 
 ```sh
-# From /home/himmel/projects/tidal
+# From the project root
 cargo run
 # Optimized standalone executable
 cargo build --release --locked
 ```
 
-The executable is `target/release/tidal-downloader` (`.exe` on Windows). Rune is pre-release and pinned to commit `dece2aff3a254ffd6f6a0a49baa82b75664b3190` for reproducible dependency resolution.
+The executable is `target/release/emul` (`.exe` on Windows). Rune is pre-release and pinned to commit `dece2aff3a254ffd6f6a0a49baa82b75664b3190` for reproducible dependency resolution.
 
 Linux also needs `libxkbcommon` and `libwayland-client` development libraries to build, and a Vulkan driver to render. On Ubuntu/Debian:
 
@@ -36,14 +36,14 @@ Video preserves source codecs; split streams merge into MKV, while a single stre
 
 The queue runs one download at a time, oldest first. Cancel stops yt-dlp and its FFmpeg child processes; partial files stay in the destination so **Retry** can resume where yt-dlp supports it. Completed files appear under **Completed**, with **Open folder**. **Clear finished** clears completed, failed, and cancelled history entries; it leaves downloaded files on disk.
 
-Settings accepts an absolute destination path. It creates the folder on save and applies changes to future jobs. Defaults to `Downloads/Tidal`. History and the selected folder live in the platform's local application data directory under `tidal-downloader/`. Closing the app cancels running work; interrupted entries offer Retry on the next launch. No accounts, analytics, or cloud persistence. Media providers receive ordinary yt-dlp network requests.
+Settings accepts an absolute destination path. It creates the folder on save and applies changes to future jobs. Defaults to `Downloads/emul`. History and the selected folder live in the platform's local application data directory under `emul/`. Closing the app cancels running work; interrupted entries offer Retry on the next launch. No accounts, analytics, or cloud persistence. Media providers receive ordinary yt-dlp network requests.
 
 ## Verify
 
 ```sh
 cargo test --locked
 cargo clippy --locked --all-targets -- -D warnings
-cargo run -- --snap /tmp/tidal.png --scene showcase
+cargo run -- --snap /tmp/emul.png --scene showcase
 ```
 
 The `showcase` scene uses illustrative queue content for design inspection only; it never downloads or saves history. Ordinary launches show your actual queue and history. Rune's built-in `--snap`, `--tree`, and `--script` tools render and drive the native interface headlessly without a display.

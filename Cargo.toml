@@ -1,5 +1,5 @@
 [package]
-name = "tidal-downloader"
+name = "emul"
 version = "0.1.0"
 edition = "2024"
 description = "A native media downloader built with Rune and yt-dlp"

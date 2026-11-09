@@ -164,7 +164,7 @@ impl State {
             .unwrap_or_else(|| {
                 dirs::download_dir()
                     .unwrap_or_else(std::env::temp_dir)
-                    .join("Tidal")
+                    .join("emul")
                     .to_string_lossy()
                     .into_owned()
             });
@@ -205,7 +205,7 @@ impl State {
         };
         if self.ready != Some((true, true)) {
             self.error =
-                "Install yt-dlp and FFmpeg, then restart Tidal. Both must be on PATH.".into();
+                "Install yt-dlp and FFmpeg, then restart emul. Both must be on PATH.".into();
             return;
         }
         let directory = self.directory.clone();
@@ -387,7 +387,7 @@ fn navigation(s: &State) -> El {
                     .center()
                     .child(glyph("download", 20., c("#13271b"))),
             )
-            .child(label("tidal", 24., 650., ink())),
+            .child(label("emul", 24., 650., ink())),
     );
     nav = nav.child(label("YOUR WORKSPACE", 10., 600., muted()).pt(25.).pb(10.));
     for (tab, name, icon) in [(0, "Downloads", "download"), (1, "Completed", "check")] {
@@ -894,8 +894,8 @@ fn view(s: &State, _: &mut Cx<State>) -> El {
 }
 fn showcase(s: &mut State) {
     s.demo = true;
-    s.folder = TextEdit::new("/Users/you/Downloads/Tidal");
-    s.directory = PathBuf::from("/Users/you/Downloads/Tidal");
+    s.folder = TextEdit::new("/Users/you/Downloads/emul");
+    s.directory = PathBuf::from("/Users/you/Downloads/emul");
     s.ready = Some((true, true));
     s.jobs.clear();
     for (id, title, url, format, status, progress, detail) in [
@@ -942,13 +942,13 @@ fn showcase(s: &mut State) {
     }
 }
 fn main() {
-    rune::tooling::set_app_id("org.tidal.downloader");
+    rune::tooling::set_app_id("org.emul.downloader");
     rune::run(AppSpec {
         min_size: Some((980., 720.)),
         setup: Some(setup),
         poll: Some(poll),
         scenes: &[("showcase", showcase)],
-        ..AppSpec::new("Tidal — Media downloader", (1180., 820.), State::new, view)
+        ..AppSpec::new("emul — Media downloader", (1180., 820.), State::new, view)
     });
 }
 

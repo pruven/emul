@@ -274,7 +274,7 @@ pub fn apply_line(job: &mut Job, line: &str) {
 pub fn history_path() -> PathBuf {
     dirs::data_local_dir()
         .unwrap_or_else(std::env::temp_dir)
-        .join("tidal-downloader/history.json")
+        .join("emul/history.json")
 }
 pub fn load_history(path: &Path) -> Vec<Job> {
     let mut jobs: Vec<Job> = std::fs::read(path)
@@ -369,7 +369,7 @@ mod integration {
     #[test]
     fn history_survives_and_interrupted_jobs_require_explicit_retry() {
         let path =
-            std::env::temp_dir().join(format!("tidal-history-test-{}.json", std::process::id()));
+            std::env::temp_dir().join(format!("emul-history-test-{}.json", std::process::id()));
         let job = Job {
             id: 1,
             url: "https://example.com/video".into(),
@@ -389,11 +389,11 @@ mod integration {
         std::fs::remove_file(path).unwrap();
     }
     #[test]
-    #[ignore = "Requires a local HTTP media fixture at TIDAL_TEST_MEDIA_URL and yt-dlp/FFmpeg"]
+    #[ignore = "Requires a local HTTP media fixture at EMUL_TEST_MEDIA_URL and yt-dlp/FFmpeg"]
     fn downloads_real_media() {
-        let url = std::env::var("TIDAL_TEST_MEDIA_URL").expect("Set fixture URL");
+        let url = std::env::var("EMUL_TEST_MEDIA_URL").expect("Set fixture URL");
         let directory =
-            std::env::temp_dir().join(format!("tidal-download-test-{}", std::process::id()));
+            std::env::temp_dir().join(format!("emul-download-test-{}", std::process::id()));
         for (id, format) in [(1, Format::Video), (2, Format::Audio)] {
             let job = Job {
                 id,
@@ -464,7 +464,7 @@ mod integration {
                 }
             }
         }
-        if let Ok(subtitle_url) = std::env::var("TIDAL_TEST_SUBTITLE_URL") {
+        if let Ok(subtitle_url) = std::env::var("EMUL_TEST_SUBTITLE_URL") {
             let job = Job {
                 id: 5,
                 url: subtitle_url,
