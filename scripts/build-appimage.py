@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a Linux x86-64 AppImage. Requires Python 3.12+, Rust, C compiler, make,
+"""Build Linux x86-64 AppImage and tar bundles. Requires Python 3.12+, Rust, C compiler, make,
 pkg-config, patchelf, and the Rune development libraries (see README).
 """
 import concurrent.futures
@@ -159,6 +159,17 @@ def main():
     run(extract_tool("appimagetool"), "--runtime-file", CACHE / "runtime-x86_64",
         "--no-appstream", APPDIR, output, env={**os.environ, "ARCH": "x86_64"})
     output.chmod(0o755)
+    # Keep the same tools/libraries in a portable archive for systems without FUSE.
+    bundle_name = f"emul-{version}-linux-x86_64"
+    executable_bundle = DIST / f"{bundle_name}.tar.gz"
+
+    def rename_launcher(member):
+        if member.name == f"{bundle_name}/AppRun":
+            member.name = f"{bundle_name}/emul"
+        return member
+
+    with tarfile.open(executable_bundle, "w:gz") as archive:
+        archive.add(APPDIR, arcname=bundle_name, filter=rename_launcher)
     # Publish exact FFmpeg/LAME sources and their build recipe beside the image.
     source_bundle = DIST / f"emul-{version}-media-sources.tar.gz"
     with tarfile.open(source_bundle, "w:gz") as archive:
@@ -166,10 +177,11 @@ def main():
             archive.add(CACHE / name, arcname=name)
         for name in ("build-ffmpeg.sh", "downloads.json", "THIRD-PARTY.md"):
             archive.add(PACKAGING / name, arcname=name)
-    for artifact in (output, source_bundle):
+    for artifact in (output, executable_bundle, source_bundle):
         (DIST / f"{artifact.name}.sha256").write_text(
             f"{hashlib.sha256(artifact.read_bytes()).hexdigest()}  {artifact.name}\n")
     print(f"AppImage: {output}", flush=True)
+    print(f"Executable archive: {executable_bundle}", flush=True)
 
 
 if __name__ == "__main__":

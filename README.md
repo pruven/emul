@@ -24,6 +24,20 @@ If FUSE is unavailable, launch with `APPIMAGE_EXTRACT_AND_RUN=1`.
 Use `./emul-<version>-x86_64.AppImage --check-tools` to check bundled tools.
 Updating the AppImage updates its media tools; bundled tools do not self-update.
 
+## Linux executable archive
+
+Releases also include `emul-<version>-linux-x86_64.tar.gz`, with the same bundled
+media tools and desktop libraries. Extract it and run the top-level `emul` launcher:
+
+```sh
+tar -xzf emul-0.1.0-linux-x86_64.tar.gz
+./emul-0.1.0-linux-x86_64/emul
+```
+
+Keep the extracted directory together. This format needs no FUSE and has the same
+Linux and graphics requirements as the AppImage. The separate `media-sources`
+archive contains source code, not the runnable application.
+
 ## Run from source
 
 Install Rust, yt-dlp, and FFmpeg. Install Deno for YouTube JavaScript challenges
@@ -59,7 +73,7 @@ The queue runs one download at a time, oldest first. Cancel stops yt-dlp and its
 
 Settings accepts an absolute destination path. It creates the folder on save and applies changes to future jobs. Defaults to `Downloads/emul`. History and the selected folder live in the platform's local application data directory under `emul/`. Closing the app cancels running work; interrupted entries offer Retry on the next launch. No accounts, analytics, or cloud persistence. Media providers receive ordinary yt-dlp network requests.
 
-## Build and release an AppImage
+## Build and release Linux bundles
 
 On Linux x86-64, install Python 3.12+, Rust, a C compiler, make, curl, pkg-config,
 patchelf, and the Linux libraries listed above (also `libfontconfig1`, `libx11-6`,
@@ -70,12 +84,12 @@ python3 scripts/build-appimage.py
 ```
 
 The script verifies pinned SHA-256 downloads, builds FFmpeg with LAME for MP3
-encoding, gathers desktop libraries, and writes the AppImage, media source archive,
-and checksum files to `dist/`. Download and media build caches live under
+encoding, gathers desktop libraries, and writes the AppImage, executable `.tar.gz`,
+media source archive, and checksum files to `dist/`. Download and media build caches live under
 `target/appimage/`. Build on Ubuntu 24.04 for the documented glibc baseline;
 building on a newer distribution can raise the minimum required glibc version.
 
-The `Linux AppImage` workflow validates pull requests and accepts manual builds.
+The `Linux bundles` workflow validates pull requests and accepts manual builds.
 Pushing a version tag matching `Cargo.toml` (for example `v0.1.0`) builds, tests,
 and publishes those files to a GitHub Release. Manual builds upload Actions
 artifacts without publishing. The release includes component notices and the

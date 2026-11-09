@@ -1,4 +1,4 @@
-name: Linux AppImage
+name: Linux bundles
 
 on:
   push:
@@ -51,8 +51,16 @@ jobs:
             target/appimage/media
             target/appimage/media-source
           key: appimage-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packaging/linux/downloads.json', 'packaging/linux/build-ffmpeg.sh') }}
-      - name: Build bundled AppImage
+      - name: Build AppImage and executable archive
         run: python3 scripts/build-appimage.py
+      - name: Verify executable archive
+        run: |
+          mkdir -p "target/tar-check/extracted bundle"
+          tar -xzf dist/emul-*-linux-x86_64.tar.gz -C "target/tar-check/extracted bundle"
+          bundle=("target/tar-check/extracted bundle"/emul-*-linux-x86_64)
+          PATH=/nonexistent "${bundle[0]}/emul" --check-tools
+          python3 tests/smoke.py --appdir "${bundle[0]}"
+          "${bundle[0]}/emul" --snap /tmp/emul-tar.png --scene showcase
       - name: Verify bundled tools without host PATH
         run: |
           mkdir -p target/appimage-check
@@ -69,7 +77,7 @@ jobs:
           dist/emul-*-x86_64.AppImage --snap /tmp/emul-appimage.png --scene showcase
       - uses: actions/upload-artifact@v4
         with:
-          name: emul-AppImage-x86_64
+          name: emul-Linux-x86_64
           path: dist/*
           if-no-files-found: error
 
@@ -82,7 +90,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: emul-AppImage-x86_64
+          name: emul-Linux-x86_64
           path: dist
       - name: Publish GitHub release
         env:

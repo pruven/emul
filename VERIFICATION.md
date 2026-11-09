@@ -40,4 +40,13 @@ The AppImage uses bundled media tools and desktop libraries. The graphics driver
 and Vulkan loader remain on the host. Exact FFmpeg/LAME source archives, the
 yt-dlp source distribution, the media build recipe, and download checksums are
 included in the companion media source archive. Release SHA-256 files are
-written alongside both artifacts.
+written alongside each artifact.
+
+## Portable Linux tar archive
+
+Built `dist/emul-0.1.0-linux-x86_64.tar.gz` with the same media tools and desktop
+libraries as the AppImage. Extracted it into a path containing spaces and verified
+the top-level `emul` launcher with no system executables on PATH. Bundled media
+download/conversion tests, native Vulkan rendering, executable permissions, and
+all release checksums passed. The release workflow now verifies and publishes
+this runnable archive and its checksum alongside the AppImage and media sources.
