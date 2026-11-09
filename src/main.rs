@@ -283,11 +283,11 @@ fn setup(s: &mut State, waker: rune::Waker) {
     s.tools.set_waker(waker);
     s.tools.request((), |_| {
         (
-            Command::new("yt-dlp")
+            engine::tool_command("yt-dlp")
                 .arg("--version")
                 .output()
                 .is_ok_and(|o| o.status.success()),
-            Command::new("ffmpeg")
+            engine::tool_command("ffmpeg")
                 .arg("-version")
                 .output()
                 .is_ok_and(|o| o.status.success()),
@@ -949,7 +949,7 @@ fn main() {
             ("ffprobe", "-version"),
             ("deno", "--version"),
         ] {
-            match Command::new(tool).arg(flag).output() {
+            match engine::tool_command(tool).arg(flag).output() {
                 Ok(output) if output.status.success() => {
                     println!(
                         "{tool}: {}",

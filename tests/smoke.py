@@ -11,15 +11,19 @@ import threading
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--appdir", type=Path, help="Use tools from an extracted AppImage")
+bundled = parser.add_mutually_exclusive_group()
+bundled.add_argument("--appdir", type=Path, help="Use tools from an extracted Linux bundle")
+bundled.add_argument("--tools", type=Path, help="Use a macOS or Windows bundle's tools directory")
 options = parser.parse_args()
-if options.appdir:
-    tools = options.appdir.resolve() / "usr/bin"
+if options.appdir or options.tools:
+    tools = options.tools.resolve() if options.tools else options.appdir.resolve() / "usr/bin"
     for tool in ("yt-dlp", "ffmpeg", "ffprobe", "deno"):
-        if not (tools / tool).is_file():
+        filename = f"{tool}.exe" if os.name == "nt" else tool
+        if not (tools / filename).is_file():
             raise SystemExit(f"Bundled tool is missing: {tool}")
     os.environ["PATH"] = str(tools) + os.pathsep + os.environ["PATH"]
-    os.environ["LD_LIBRARY_PATH"] = str(options.appdir.resolve() / "usr/lib")
+    if options.appdir:
+        os.environ["LD_LIBRARY_PATH"] = str(options.appdir.resolve() / "usr/lib")
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
