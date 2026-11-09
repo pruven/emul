@@ -14,9 +14,13 @@ import tarfile
 import tomllib
 import zipfile
 
+from bundle_common import check_architecture, host_arch
+
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGING = ROOT / "packaging/linux"
-BUILD = ROOT / "target/appimage"
+ARCH = host_arch()
+MANIFEST = PACKAGING / ("downloads.json" if ARCH == "x86_64" else "downloads-aarch64.json")
+BUILD = ROOT / "target" / ("appimage" if ARCH == "x86_64" else f"appimage-{ARCH}")
 CACHE = BUILD / "downloads"
 APPDIR = BUILD / "emul.AppDir"
 DIST = ROOT / "dist"
@@ -54,17 +58,17 @@ def extract_tool(name):
 
 
 def main():
-    if platform.system() != "Linux" or platform.machine() != "x86_64":
-        raise SystemExit("AppImage packaging currently supports Linux x86-64 only.")
+    if platform.system() != "Linux":
+        raise SystemExit("AppImage packaging requires Linux; use build-native.py elsewhere.")
     CACHE.mkdir(parents=True, exist_ok=True)
     DIST.mkdir(exist_ok=True)
-    specs = json.loads((PACKAGING / "downloads.json").read_text())
+    specs = json.loads(MANIFEST.read_text())
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         list(pool.map(download, specs.items()))
 
     # The stamp includes the build recipe, so recipe or dependency changes rebuild FFmpeg.
     stamp = hashlib.sha256((PACKAGING / "build-ffmpeg.sh").read_bytes()
-                           + (PACKAGING / "downloads.json").read_bytes()).hexdigest()
+                           + MANIFEST.read_bytes()).hexdigest()
     prefix = BUILD / "media"
     stamp_path = prefix / ".stamp"
     if not stamp_path.exists() or stamp_path.read_text() != stamp:
@@ -101,7 +105,8 @@ def main():
                  "libxkbcommon.so.0", "libxkbcommon-x11.so.0", "libfontconfig.so.1",
                  "libX11.so.6", "libXcursor.so.1", "libXrandr.so.2", "libXi.so.6"):
         matches = [line.split(" => ")[-1] for line in cache.splitlines()
-                   if line.strip().startswith(name + " ") and "x86-64" in line]
+                   if line.strip().startswith(name + " ")
+                   and ("x86-64" if ARCH == "x86_64" else "aarch64") in line.lower()]
         if not matches:
             raise RuntimeError(f"Missing build dependency: {name}")
         libraries.extend(["--library", matches[0]])
@@ -118,7 +123,7 @@ def main():
     notices = APPDIR / "usr/share/doc/emul"
     notices.mkdir(parents=True)
     shutil.copy2(ROOT / "LICENSE", notices / "LICENSE")
-    shutil.copy2(PACKAGING / "downloads.json", notices)
+    shutil.copy2(MANIFEST, notices / "downloads.json")
     shutil.copy2(PACKAGING / "THIRD-PARTY.md", notices)
     shutil.copy2(CACHE / "deno-LICENSE.md", notices)
     system_notices = notices / "system-libraries"
@@ -132,7 +137,8 @@ def main():
     if shutil.which("pacman"):
         for library in (APPDIR / "usr/lib").glob("*.so*"):
             matches = [line.split(" => ")[-1] for line in cache.splitlines()
-                       if line.strip().startswith(library.name + " ") and "x86-64" in line]
+                       if line.strip().startswith(library.name + " ")
+                       and ("x86-64" if ARCH == "x86_64" else "aarch64") in line.lower()]
             if not matches:
                 continue
             owner = subprocess.check_output(["pacman", "-Qoq", matches[0]], text=True).strip()
@@ -149,18 +155,20 @@ def main():
             if Path(member.name).name in ("LICENSE", "THIRD_PARTY_LICENSES") and member.isfile():
                 (notices / f"yt-dlp-{Path(member.name).name}").write_bytes(archive.extractfile(member).read())
 
+    for executable in bin_dir.iterdir():
+        check_architecture(executable, "linux", ARCH)
     run(APPDIR / "AppRun", "--check-tools")
     with (ROOT / "Cargo.toml").open("rb") as manifest:
         version = os.environ.get("VERSION") or tomllib.load(manifest)["package"]["version"]
     version = version.removeprefix("v")
     if not version or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-+" for c in version):
         raise RuntimeError(f"Invalid release version: {version!r}")
-    output = DIST / f"emul-{version}-x86_64.AppImage"
-    run(extract_tool("appimagetool"), "--runtime-file", CACHE / "runtime-x86_64",
-        "--no-appstream", APPDIR, output, env={**os.environ, "ARCH": "x86_64"})
+    output = DIST / f"emul-{version}-{ARCH}.AppImage"
+    run(extract_tool("appimagetool"), "--runtime-file", CACHE / f"runtime-{ARCH}",
+        "--no-appstream", APPDIR, output, env={**os.environ, "ARCH": ARCH})
     output.chmod(0o755)
     # Keep the same tools/libraries in a portable archive for systems without FUSE.
-    bundle_name = f"emul-{version}-linux-x86_64"
+    bundle_name = f"emul-{version}-linux-{ARCH}"
     executable_bundle = DIST / f"{bundle_name}.tar.gz"
 
     def rename_launcher(member):
@@ -170,14 +178,20 @@ def main():
 
     with tarfile.open(executable_bundle, "w:gz") as archive:
         archive.add(APPDIR, arcname=bundle_name, filter=rename_launcher)
-    # Publish exact FFmpeg/LAME sources and their build recipe beside the image.
-    source_bundle = DIST / f"emul-{version}-media-sources.tar.gz"
-    with tarfile.open(source_bundle, "w:gz") as archive:
-        for name in ("ffmpeg-source.tar.gz", "lame-source.tar.gz", "yt-dlp-source.tar.gz"):
-            archive.add(CACHE / name, arcname=name)
-        for name in ("build-ffmpeg.sh", "downloads.json", "THIRD-PARTY.md"):
-            archive.add(PACKAGING / name, arcname=name)
-    for artifact in (output, executable_bundle, source_bundle):
+    artifacts = [output, executable_bundle]
+    # All six native builds use these exact media sources. Publish one source asset.
+    if ARCH == "x86_64":
+        source_bundle = DIST / f"emul-{version}-media-sources.tar.gz"
+        with tarfile.open(source_bundle, "w:gz") as archive:
+            for name in ("ffmpeg-source.tar.gz", "lame-source.tar.gz", "yt-dlp-source.tar.gz"):
+                archive.add(CACHE / name, arcname=name)
+            for name in ("build-ffmpeg.sh", "downloads.json", "downloads-aarch64.json"):
+                archive.add(PACKAGING / name, arcname=name)
+            archive.add(ROOT / "packaging/build-media.sh", arcname="build-media-native.sh")
+            for name in ("native-downloads.json", "THIRD-PARTY.md"):
+                archive.add(ROOT / "packaging" / name, arcname=name)
+        artifacts.append(source_bundle)
+    for artifact in artifacts:
         (DIST / f"{artifact.name}.sha256").write_text(
             f"{hashlib.sha256(artifact.read_bytes()).hexdigest()}  {artifact.name}\n")
     print(f"AppImage: {output}", flush=True)

@@ -55,6 +55,37 @@ pub enum Event {
     End(u64, Result<(), String>),
 }
 
+/// Packaged tools live beside the executable or in its tools directory.
+/// Set PATH only for the child, so yt-dlp also finds FFmpeg, ffprobe, and Deno.
+pub fn tool_command(tool: &str) -> Command {
+    let filename = if cfg!(windows) {
+        format!("{tool}.exe")
+    } else {
+        tool.to_string()
+    };
+    if let Some(directory) = std::env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(Path::to_path_buf))
+        .and_then(|directory| {
+            [directory.join("tools"), directory]
+                .into_iter()
+                .find(|directory| directory.join(&filename).is_file())
+        })
+    {
+        let mut command = Command::new(directory.join(filename));
+        let mut paths = vec![directory];
+        if let Some(path) = std::env::var_os("PATH") {
+            paths.extend(std::env::split_paths(&path));
+        }
+        if let Ok(path) = std::env::join_paths(paths) {
+            command.env("PATH", path);
+        }
+        command
+    } else {
+        Command::new(tool)
+    }
+}
+
 pub fn validate_url(input: &str) -> Result<String, String> {
     let input = input.trim();
     let parsed = url::Url::parse(input)
@@ -143,7 +174,7 @@ pub fn spawn(job: Job, tx: Sender<Event>, cancel: Arc<AtomicBool>) -> thread::Jo
 fn run(job: &Job, tx: &Sender<Event>, cancel: &AtomicBool) -> Result<(), String> {
     std::fs::create_dir_all(&job.directory)
         .map_err(|e| format!("Cannot create download folder: {e}"))?;
-    let mut command = Command::new("yt-dlp");
+    let mut command = tool_command("yt-dlp");
     command
         .args(arguments(job))
         .stdin(Stdio::null())

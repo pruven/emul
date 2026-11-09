@@ -50,3 +50,33 @@ the top-level `emul` launcher with no system executables on PATH. Bundled media
 download/conversion tests, native Vulkan rendering, executable permissions, and
 all release checksums passed. The release workflow now verifies and publishes
 this runnable archive and its checksum alongside the AppImage and media sources.
+
+## Six-target desktop release workflow
+
+Configured native builds for Linux, macOS, and Windows on x86-64 and ARM64.
+The unified `.github/workflows/release.yml` replaces the previous native and
+Linux-only workflows. Every target creates a runnable tar archive; Linux adds
+AppImage, macOS adds an ad-hoc-signed app in a DMG, and Windows adds a ZIP.
+A pushed matching `v*` tag publishes only after all six matrix builds pass.
+
+Locally verified on Linux x86-64:
+
+- Rust tests: 8 passed; Clippy with warnings denied and Rustfmt passed.
+- Packaging tests: wrong-CPU rejection, universal Mach-O acceptance, and archive
+  layout/metadata/checksums for both Windows and macOS architectures passed.
+  These layout tests use synthetic executable headers, not native builds.
+- Actionlint v1.7.12 accepted the complete six-target workflow.
+- Rebuilt the real Linux AppImage/tar, verified CPU headers and checksums,
+  checked bundled tools with host PATH removed, ran the real download/audio/
+  subtitle worker test, and rendered both packages through Vulkan successfully.
+- Official upstream release manifests supplied pinned yt-dlp, Deno, and AppImage
+  tools for each supported architecture. FFmpeg/LAME sources remain shared.
+
+Windows, macOS, and Linux ARM64 executables cannot be executed on this local
+Linux x86-64 host and have not been built or run here. Their native runner jobs
+validate executable headers, tool startup, real media operations, and the
+produced tar plus ZIP/DMG/AppImage as appropriate before release publication.
+Native GPU rendering is verified locally and in Linux CI; macOS/Windows GUI
+rendering is not claimed by the hosted-runner tool checks. Apple notarization,
+Developer ID signatures, Windows certificate signing, and 32-bit/other CPU
+architectures are not configured.
