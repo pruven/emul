@@ -4,9 +4,30 @@ A native media downloader built with [Rune](https://github.com/anomalyco/rune) a
 
 ![Native Rune interface](shots/showcase.png)
 
-## Run
+## Linux AppImage
 
-Install Rust, yt-dlp, and FFmpeg. Make sure `yt-dlp` and `ffmpeg` are available on PATH **when launching the app**.
+Download `emul-<version>-x86_64.AppImage` from the repository's GitHub Releases,
+make it executable, and run it:
+
+```sh
+chmod +x emul-*-x86_64.AppImage
+./emul-*-x86_64.AppImage
+```
+
+The AppImage bundles yt-dlp (including Python and the EJS scripts), FFmpeg,
+ffprobe, and Deno. No separate media-tool installation is needed. Bundled tools
+are preferred over system tools. Linux x86-64 with glibc 2.39 or newer
+(Ubuntu 24.04 or equivalent) and a working Vulkan graphics driver is required.
+The window supports Wayland and X11. ARM Linux is not packaged yet.
+
+If FUSE is unavailable, launch with `APPIMAGE_EXTRACT_AND_RUN=1`.
+Use `./emul-<version>-x86_64.AppImage --check-tools` to check bundled tools.
+Updating the AppImage updates its media tools; bundled tools do not self-update.
+
+## Run from source
+
+Install Rust, yt-dlp, and FFmpeg. Install Deno for YouTube JavaScript challenges
+(see [yt-dlp’s runtime setup](https://github.com/yt-dlp/yt-dlp/wiki/EJS)). Make sure `yt-dlp` and `ffmpeg` are available on PATH **when launching the app**.
 
 ```sh
 # From the project root
@@ -23,7 +44,7 @@ Linux also needs `libxkbcommon` and `libwayland-client` development libraries to
 sudo apt-get install libxkbcommon-dev libwayland-dev libxkbcommon-x11-0 mesa-vulkan-drivers
 ```
 
-On macOS, install Xcode Command Line Tools; Homebrew provides yt-dlp and FFmpeg. On Windows, install the Rust MSVC toolchain and Visual Studio C++ Build Tools; install yt-dlp and FFmpeg and add them to PATH. An installed GPU driver is required. The included CI workflow builds Linux, macOS, and Windows executables; only Linux has been exercised locally.
+On macOS, install Xcode Command Line Tools; Homebrew provides yt-dlp and FFmpeg. On Windows, install the Rust MSVC toolchain and Visual Studio C++ Build Tools; install yt-dlp and FFmpeg and add them to PATH. An installed GPU driver is required. The native CI workflow builds Linux, macOS, and Windows executables. AppImage packaging is Linux-only; only Linux has been exercised locally.
 
 ## Use
 
@@ -37,6 +58,29 @@ Video preserves source codecs; split streams merge into MKV, while a single stre
 The queue runs one download at a time, oldest first. Cancel stops yt-dlp and its FFmpeg child processes; partial files stay in the destination so **Retry** can resume where yt-dlp supports it. Completed files appear under **Completed**, with **Open folder**. **Clear finished** clears completed, failed, and cancelled history entries; it leaves downloaded files on disk.
 
 Settings accepts an absolute destination path. It creates the folder on save and applies changes to future jobs. Defaults to `Downloads/emul`. History and the selected folder live in the platform's local application data directory under `emul/`. Closing the app cancels running work; interrupted entries offer Retry on the next launch. No accounts, analytics, or cloud persistence. Media providers receive ordinary yt-dlp network requests.
+
+## Build and release an AppImage
+
+On Linux x86-64, install Python 3.12+, Rust, a C compiler, make, curl, pkg-config,
+patchelf, and the Linux libraries listed above (also `libfontconfig1`, `libx11-6`,
+`libxcursor1`, `libxrandr2`, and `libxi6`). Then run:
+
+```sh
+python3 scripts/build-appimage.py
+```
+
+The script verifies pinned SHA-256 downloads, builds FFmpeg with LAME for MP3
+encoding, gathers desktop libraries, and writes the AppImage, media source archive,
+and checksum files to `dist/`. Download and media build caches live under
+`target/appimage/`. Build on Ubuntu 24.04 for the documented glibc baseline;
+building on a newer distribution can raise the minimum required glibc version.
+
+The `Linux AppImage` workflow validates pull requests and accepts manual builds.
+Pushing a version tag matching `Cargo.toml` (for example `v0.1.0`) builds, tests,
+and publishes those files to a GitHub Release. Manual builds upload Actions
+artifacts without publishing. The release includes component notices and the
+exact media source archives with their build recipe. See
+[third-party components](packaging/linux/THIRD-PARTY.md).
 
 ## Verify
 
@@ -54,4 +98,4 @@ Tests exercise URL validation, shell-free argument construction, progress decodi
 python3 tests/smoke.py
 ```
 
-Use media you own or have permission to download. Availability and provider authentication restrictions are determined by yt-dlp. Cookie management, playlist expansion, built-in dependency installation, signed installers, automatic updates, and mobile targets are not included.
+Use media you own or have permission to download. Availability and provider authentication restrictions are determined by yt-dlp. Cookie management, playlist expansion, built-in dependency installation for source builds, signed installers, automatic updates, and mobile targets are not included.

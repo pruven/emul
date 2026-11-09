@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Exercise the real yt-dlp worker against generated media, without internet access."""
+import argparse
 import functools
 import http.server
 import os
@@ -9,6 +10,16 @@ import tempfile
 import threading
 
 ROOT = Path(__file__).resolve().parents[1]
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--appdir", type=Path, help="Use tools from an extracted AppImage")
+options = parser.parse_args()
+if options.appdir:
+    tools = options.appdir.resolve() / "usr/bin"
+    for tool in ("yt-dlp", "ffmpeg", "ffprobe", "deno"):
+        if not (tools / tool).is_file():
+            raise SystemExit(f"Bundled tool is missing: {tool}")
+    os.environ["PATH"] = str(tools) + os.pathsep + os.environ["PATH"]
+    os.environ["LD_LIBRARY_PATH"] = str(options.appdir.resolve() / "usr/lib")
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
@@ -21,7 +32,7 @@ with tempfile.TemporaryDirectory(prefix="emul-fixture-") as fixture_dir:
         "ffmpeg", "-hide_banner", "-loglevel", "error",
         "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=24",
         "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100",
-        "-t", "1", "-c:v", "libx264", "-c:a", "aac", "-shortest",
+        "-t", "1", "-c:v", "mpeg4", "-c:a", "aac", "-shortest",
         str(Path(fixture_dir) / "fixture.mp4"),
     ], check=True)
     Path(fixture_dir, "en.vtt").write_text("WEBVTT\n\n00:00.000 --> 00:01.000\nA local subtitle fixture.\n")

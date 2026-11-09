@@ -1,3 +1,4 @@
 /target/
 /shots/*.json
 __pycache__/
+/dist/

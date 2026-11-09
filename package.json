@@ -8,6 +8,7 @@
     "test": "cargo test --locked",
     "desktop:dev": "cargo run",
     "desktop:build": "cargo build --release --locked",
+    "appimage": "python3 scripts/build-appimage.py",
     "desktop:test": "cargo test --locked"
   }
 }

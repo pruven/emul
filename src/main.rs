@@ -205,7 +205,7 @@ impl State {
         };
         if self.ready != Some((true, true)) {
             self.error =
-                "Install yt-dlp and FFmpeg, then restart emul. Both must be on PATH.".into();
+                "Media tools are missing. Reinstall the AppImage, or install yt-dlp and FFmpeg on PATH.".into();
             return;
         }
         let directory = self.directory.clone();
@@ -942,6 +942,31 @@ fn showcase(s: &mut State) {
     }
 }
 fn main() {
+    if std::env::args().any(|arg| arg == "--check-tools") {
+        for (tool, flag) in [
+            ("yt-dlp", "--version"),
+            ("ffmpeg", "-version"),
+            ("ffprobe", "-version"),
+            ("deno", "--version"),
+        ] {
+            match Command::new(tool).arg(flag).output() {
+                Ok(output) if output.status.success() => {
+                    println!(
+                        "{tool}: {}",
+                        String::from_utf8_lossy(&output.stdout)
+                            .lines()
+                            .next()
+                            .unwrap_or("OK")
+                    );
+                }
+                result => {
+                    eprintln!("{tool} check failed: {result:?}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        return;
+    }
     rune::tooling::set_app_id("org.emul.downloader");
     rune::run(AppSpec {
         min_size: Some((980., 720.)),

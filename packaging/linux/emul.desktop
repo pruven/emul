@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=emul
+Comment=Download video, audio, and subtitles
+Exec=emul
+Icon=emul
+Terminal=false
+Categories=Network;AudioVideo;
+StartupWMClass=org.emul.downloader
